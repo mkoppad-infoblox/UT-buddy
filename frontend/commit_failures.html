@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commit Failures Chat</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: url('/static/background_mainpage.png') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+    }
+
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.65);
+      min-height: 100vh;
+    }
+
+    .navbar {
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 1rem 2rem;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar img {
+      height: 40px;
+    }
+
+    .nav-links a {
+      color: #cbd5e1;
+      margin-left: 20px;
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    .nav-links a:hover {
+      color: white;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 100px auto;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(6px);
+      border-radius: 12px;
+      padding: 30px;
+      color: #f9fafb;
+    }
+
+    h2 {
+      font-size: 20px;
+      color: #e0f2fe;
+      border-left: 4px solid #60a5fa;
+      padding-left: 12px;
+      margin-bottom: 18px;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 500px;
+      border-radius: 12px;
+      overflow: hidden;
+      background-color: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .chat-input {
+      display: flex;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      font-size: 15px;
+      background-color: transparent;
+      color: #f9fafb;
+      outline: none;
+    }
+
+    .chat-input input::placeholder {
+      color: #94a3b8;
+    }
+
+    .chat-input button {
+      padding: 0 20px;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+
+    .chat-input button:hover {
+      background-color: #1d4ed8;
+    }
+
+    .user-msg,
+    .bot-msg {
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 80%;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    .user-msg {
+      background-color: #1d4ed8;
+      align-self: flex-end;
+      margin-left: auto;
+      color: #fff;
+    }
+
+    .bot-msg {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      align-self: flex-start;
+      margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+<div class="overlay">
+  <div class="navbar">
+    <img src="/static/infoblox_logo.svg" alt="Logo">
+    <div class="nav-links">
+      <a href="/frontend/index.html">Home</a>
+      <a href="/commit_failures.html">NIOS UTs</a>
+      <a href="/frontend/jenkins_tasks.html">Jenkins Tasks</a>
+      <a href="/frontend/resolution.html">Resolutions</a>
+      <a href="/frontend/jira.html">JIRA Matches</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>💬 Commit Chat Assistant</h2>
+    <div class="chat-container" id="chatContainer">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input">
+        <input type="text" id="commitInput" placeholder="Ask about a commit ID..." />
+        <button id="commitSearchBtn">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/commit.js"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+### How to Add VMs to Jenkins
+To add virtual machines (VMs) to Jenkins, you typically configure them as agent nodes:
+1. Go to Manage Jenkins > Manage Nodes and Clouds.
+2. Click New Node.
+3. Enter a name, select Permanent Agent, and click OK.
+4. Configure:
+   - Remote root directory
+   - Labels (optional)
+   - Launch method (e.g., SSH, JNLP)
+5. Save and connect the VM.
+
+### How to Create a Pool in Jenkins
+Jenkins doesn't have a native "pool" concept, but you can simulate pools using labels:
+1. Assign the same label (e.g., linux-pool) to multiple nodes.
+2. In your job configuration, restrict execution to nodes with that label.
+3. Jenkins will then pick any available node from the "pool" to run the job.
+
+### How to Add VMs to the Pool
+To add a VM to a pool:
+1. Go to the node configuration.
+2. Under Labels, add the pool label (e.g., linux-pool).
+3. Save the configuration.
+Now this VM will be part of the pool and eligible for jobs targeting that label.
+
+### How to Deploy Nodes
+Deploying nodes typically means provisioning and connecting new agents:
+1. Provision a VM or container with required tools (Java, SSH, etc.).
+2. Add it to Jenkins as a new node.
+3. Use cloud plugins (like EC2, Azure, Kubernetes) to automate provisioning.
+4. Ensure the node is online and connected.
+
+### How to Create a Task in Jenkins
+To create a task (job):
+1. Go to the Jenkins dashboard.
+2. Click New Item.
+3. Enter a name and select a job type (e.g., Freestyle, Pipeline).
+4. Configure:
+   - Source code repository
+   - Build triggers
+   - Build steps (e.g., shell script, Maven, Gradle)
+5. Save and run the job.
+
+### What is an Upstream Job?
+An upstream job is a job that triggers another job (downstream). It runs before the downstream job and can pass parameters or artifacts.
+Example:
+- Job A (upstream) → triggers Job B (downstream)
+
+### What is a Downstream Job?
+A downstream job is triggered after an upstream job completes. It can be configured using:
+- Post-build actions in the upstream job
+- Build triggers in the downstream job
+
+### Where Can I See All the Pools and VMs?
+1. Go to Manage Jenkins > Manage Nodes and Clouds.
+2. You'll see a list of all configured nodes (VMs).
+3. Use the Labels column to identify pools.
+
+### Where Can I See All the Tasks?
+1. From the Jenkins dashboard, you'll see all top-level jobs.
+2. You can also organize jobs into folders or use views to group them.
+3. Use the "All" view or create custom views for better organization.
+
+### How to Check Logs of a Task
+To view logs:
+1. Go to the job page.
+2. Click on a specific build number.
+3. Click Console Output to see the logs.
+You can also enable timestamps and log rotation in job settings.

@@ -1,0 +1,11 @@
+Creating a new task for Jenkins:
+
+1 Go to10.197.38.69:8080 which will lead you to the main dashboard.
+
+2 There you can see many tasks, now go on new item
+
+3 Then there will be a option called “Enter an item name” where we can enter the name of the new task
+
+4 No scroll down and you will see a option called “Copy from” where you will mention the task name which is already created an you just have to copy the same configuration her also
+
+5 Press “Ok”

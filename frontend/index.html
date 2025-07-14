@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.10.2/lottie.min.js"></script>
+  <title>UT Buddy – Smart Debugging Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self';">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)), url('/static/background_mainpage.png') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+      overflow-x: hidden;
+    }
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.3);
+      min-height: 100vh;
+    }
+    .navbar {
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 1rem 2rem;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .navbar h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .nav-links a {
+      color: #cbd5e1;
+      margin-left: 20px;
+      text-decoration: none;
+      font-size: 15px;
+    }
+    .nav-links a:hover {
+      color: white;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 70px auto 60px auto;
+      padding: 0 30px;
+    }
+    .intro {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    .intro h2 {
+      font-size: 34px;
+      margin-bottom: 18px;
+    }
+    .intro p {
+      font-size: 18px;
+      color: #d1d5db;
+      max-width: 700px;
+      margin: 0 auto;
+      min-height: 50px;
+    }
+    .features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+}
+    .card {
+      background-color: rgba(255, 255, 255, 0.08);
+      padding: 25px 25px 30px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: fadeInUp 0.7s ease forwards;
+      opacity: 0;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 15px 2px rgba(96, 165, 250, 0.4);
+    }
+    .card h3 {
+      margin-top: 0;
+      color: #ffffff;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+    .card p {
+      font-size: 14px;
+      color: #d1d5db;
+      line-height: 1.5;
+    }
+    .card a {
+      display: inline-block;
+      margin-top: 14px;
+      text-decoration: none;
+      color: #60a5fa;
+      font-weight: 500;
+    }
+    .card a:hover {
+      text-decoration: underline;
+    }
+    .bouncing-emoji {
+      display: inline-block;
+      animation: bounceZoom 1.2s ease-in-out infinite;
+      font-size: 20px;
+      margin-left: 6px;
+      transform-origin: center;
+    }
+    @keyframes bounceZoom {
+      0%, 100% { transform: scale(1) translateY(0); }
+      50% { transform: scale(1.3) translateY(-4px); }
+    }
+    @keyframes fadeInUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    #utbot-container {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 999;
+      animation: bounceBot 2.5s infinite ease-in-out;
+      cursor: pointer;
+    }
+    #utbot-animation {
+      width: 100px;
+      height: 100px;
+    }
+    #utbot-speech {
+      margin-top: 6px;
+      background: white;
+      color: #1e293b;
+      padding: 10px 14px;
+      font-size: 13px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      animation: fadeInChat 1.2s ease-out;
+      text-align: center;
+      white-space: nowrap;
+    }
+    @keyframes fadeInChat {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes bounceBot {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    .intro-content {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 30px;
+    }
+    .bot-container {
+      position: relative;
+      display: inline-block;
+      animation: float 3s ease-in-out infinite;
+    }
+    .bot-img {
+      height: 140px;
+      width: auto;
+    }
+    .speech-bubble {
+      position: absolute;
+      top: -20px;
+      right: -10px;
+      background: #111;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 16px;
+      font-size: 14px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    .text-block {
+      max-width: 600px;
+      text-align: left;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Bot bubble -->
+<div id="utbot-container">
+  <div id="utbot-animation"></div>
+  <div id="utbot-speech">💬 Welcome to UT Buddy!</div>
+</div>
+
+<div class="overlay">
+  <div class="navbar">
+    <img src="/static/infoblox_logo.svg" style="height: 40px;">
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/commit_failures.html">NIOS UTs</a>
+      <a href="/frontend/jenkins_tasks.html">Jenkins Tasks</a>
+      <a href="/frontend/resolution.html">Resolutions</a>
+      <a href="/frontend/jira.html">JIRA Matches</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="intro">
+      <h2 id="greeting-text">Developer</h2>
+      <div class="intro-content">
+        <div class="bot-container">
+          <img src="/static/utbuddy_bot.png" alt="UT Buddy" class="bot-img">
+          <div class="speech-bubble">Hi, I'm UT Buddy!</div>
+        </div>
+        <div class="text-block">
+          <p id="typewriter"></p>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="features">
+      <div class="card">
+        <h3>📌 Jira Ticket Matcher</h3>
+        <p>Enter any UT error and instantly find related JIRA issues — complete with live links and status tags.</p>
+        <a href="/frontend/jira.html">→ Go to JIRA Matches</a>
+      </div>
+      <div class="card">
+        <h3>🔍 Commit Failure Lookup</h3>
+        <p>Enter a commit ID or NIOS release to retrieve UT failures and regression summaries.</p>
+        <a href="/commit_failures.html">→ View Commit/Release Failures</a>
+      </div>
+      <div class="card">
+        <h3>💡 Error Resolution Assistant</h3>
+        <p>Stuck on a failure? Describe it. UT Buddy suggests solutions and root cause hints.</p>
+        <a href="/frontend/resolution.html">→ Try the Assistant</a>
+      </div>
+      <div class="card">
+        <h3>🛠 Jenkins Task Guide</h3>
+        <p>Quickly generate Jenkins job parameters and test commands using our guide.</p>
+        <a href="/frontend/jenkins_tasks.html">→ Open Jenkins Helper</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/main.js"></script>
+
+</body>
+</html>
