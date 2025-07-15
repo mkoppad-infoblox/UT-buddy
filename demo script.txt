@@ -1,0 +1,29 @@
+Jira Ticket:
+
+Request 1: Invalid enum value for port_speed
+
+Request 2: Hey, I am struck on this error where the value for port speed is invalid, could you suggest some relevant tickets?
+
+Error Resolution:
+
+Hey, I am struck with the Invalid enum value for port speed, Could you please explain in detail?
+
+
+Jenkins Tasks:
+
+How to create a new Jenkins UT task for a feature branch?
+How do I configure the runners for this
+My Jenkins job is stuck in the queue. What should I check?
+
+
+Commits Lookup
+
+Request 1 : what was the result of the test run of 9.0.5?
+ 
+Request 2: what is the failure count for b3680f6106d1c1dd53dbe442890ec40a3d49182f?
+ 
+Request 3: what is the failure count for b3680f6?
+ 
+Request 4: what is the failure count for 93rfwv12?
+ 
+API EXTRA : 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

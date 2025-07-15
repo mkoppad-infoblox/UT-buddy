@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error Resolution</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: url('/static/background_mainpage.png') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+    }
+
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.65);
+      min-height: 100vh;
+    }
+
+    .navbar {
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 1rem 2rem;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar img {
+      height: 40px;
+    }
+
+    .nav-links a {
+      color: #cbd5e1;
+      margin-left: 20px;
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    .nav-links a:hover {
+      color: white;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 100px auto;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(6px);
+      border-radius: 12px;
+      padding: 30px;
+      color: #f9fafb;
+    }
+
+    h2 {
+      font-size: 20px;
+      color: #e0f2fe;
+      border-left: 4px solid #60a5fa;
+      padding-left: 12px;
+      margin-bottom: 18px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background-color: rgba(255, 255, 255, 0.08);
+      color: #f9fafb;
+      font-size: 15px;
+      border-radius: 10px;
+      resize: vertical;
+      margin-bottom: 20px;
+    }
+
+    textarea::placeholder {
+      color: #94a3b8;
+    }
+
+    .search-button {
+      background-color: #2563eb;
+      color: white;
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .search-button:hover {
+      background-color: #1d4ed8;
+    }
+
+    .results-container {
+      margin-top: 25px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 16px; 
+      font-size: 15px;
+      line-height: 1.6;
+      color: #e5e7eb;
+      white-space: pre-wrap;
+      font-family: 'Courier New', Courier, monospace;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .results-container code {
+      background-color: #1e293b;
+      color: #facc15;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    .results-container pre {
+      background-color: #111827;
+      padding: 10px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .formatted-response {
+		padding: 10px;
+		background-color: #f9f9f9;
+		border-radius: 8px;
+		line-height: 1.6;
+		font-family: Arial, sans-serif;
+	}
+  </style>
+</head>
+<body>
+<div class="overlay">
+  <div class="navbar">
+    <img src="/static/infoblox_logo.svg" alt="Logo">
+    <div class="nav-links">
+      <a href="/frontend/index.html">Home</a>
+      <a href="/commit_failures.html">NIOS UTs</a>
+      <a href="/frontend/jenkins_tasks.html">Jenkins Tasks</a>
+      <a href="/frontend/resolution.html">Resolutions</a>
+      <a href="/frontend/jira.html">JIRA Matches</a>
+    </div>
+  </div>
+
+  <div class="container">
+		<h2>Error Resolution Assistant</h2>
+		<div id="chatBox" class="results-container" style="min-height: 200px; margin-bottom: 20px;"></div>
+		<textarea id="errorInput" rows="6" placeholder="Describe your error..." class="input-field"></textarea>
+		<button id="errorResolveBtn" class="search-button">Ask Assistant</button>
+	</div>
+</div>
+
+<script src="/frontend/resolution.js"></script>
+</body>
+</html>
