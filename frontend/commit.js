@@ -9,14 +9,15 @@ function debounce(func, delay = 1000) {
 
 function extractCommitId(text) {
 	const commitMatch = text.match(/\b[0-9a-f]{7,40}\b/i);
-	const releaseMatch = text.match(/\b9\.0\.[0-7]\b/); // Matches 9.0.0 to 9.0.7
+	const releaseMatch = text.match(/9\.0\.[0-7]/);
 	return commitMatch ? commitMatch[0] : (releaseMatch ? releaseMatch[0] : null);
 }
 
 
 function extractDateRange(text) {
 	// Match range: YYYY-MM-DD to YYYY-MM-DD
-	const dateRangeMatch = text.match(/(\d{4}-\d{2}-\d{2})\s*to\s*(\d{4}-\d{2}-\d{2})/i);
+	// Match two dates separated by any word(s) (e.g., 'to', 'and', 'until', etc.)
+	const dateRangeMatch = text.match(/(\d{4}-\d{2}-\d{2})\s+\w+\s+(\d{4}-\d{2}-\d{2})/i);
 	if (dateRangeMatch) {
 		return {
 			start: dateRangeMatch[1],
@@ -53,16 +54,25 @@ async function searchCommitFailures() {
 
 		// Check for date range, commit id, or author name (exact word match only)
 		const dateRange = extractDateRange(userText);
-			const commitId = extractCommitId(userText);
-			let isValidCommitId = false;
-			if (commitId) {
-				if (commitId.length === 7 || commitId.length === 40) {
-					isValidCommitId = true;
-				} else {
-					appendMessage("❗ Please enter a valid commit ID (7 or 40 characters).", "bot-msg");
-					return;
-				}
-			}
+						let commitId = extractCommitId(userText);
+						// Regex for release string anywhere in input (e.g., 'give me the test run for 9.0.1')
+						const releasePattern = /\b9\.0\.[0-7]\b/;
+						let isReleaseString = false;
+						let isValidCommitId = false;
+						// Always treat a release string as a valid commit id, even if extractCommitId fails
+						const releaseMatch = userText.match(releasePattern);
+						if (releaseMatch) {
+							commitId = releaseMatch[0];
+							isReleaseString = true;
+						}
+						if (commitId) {
+							if (isReleaseString || commitId.length === 7 || commitId.length === 40) {
+								isValidCommitId = true;
+							} else {
+								appendMessage("❗ Please enter a valid commit ID (7 or 40 characters, or a valid release like 9.0.0).", "bot-msg");
+								return;
+							}
+						}
 				let isAuthorName = false;
 				let authorNameWord = null;
 				let authorFullName = null;
@@ -86,12 +96,11 @@ async function searchCommitFailures() {
 	try {
 		let body = {};
 		if (dateRange) {
-			body = { start_date: dateRange.start, end_date: dateRange.end };
-			} else if (commitId && isValidCommitId) {
-				body = { commit_id: commitId };
-				} else if (isAuthorName) {
-					// Send the full input for backend filtering, but frontend will also filter
-					body = { author_name: userText.trim() };
+			body = { start_date: dateRange.start, end_date: dateRange.end, raw_query: userText };
+		} else if (commitId && isValidCommitId) {
+			body = { commit_id: commitId, raw_query: userText };
+		} else if (isAuthorName) {
+			body = { author_name: userText.trim(), raw_query: userText };
 		}
 
 		const res = await fetch("/commit_failures", {
@@ -134,21 +143,22 @@ async function searchCommitFailures() {
 					}
 				}
 				// If commitId, filter for exact match (7 or 40 chars)
-					if (commitId && isValidCommitId) {
-						filteredMatches = filteredMatches.filter(entry => {
-							if (!entry.Revision) return false;
-							if (commitId.length === 7) {
-								return entry.Revision.startsWith(commitId);
-							} else if (commitId.length === 40) {
-								return entry.Revision === commitId;
-							}
-							return false;
-						});
-						if (filteredMatches.length === 0) {
-							appendMessage("❗ Invalid commit ID: not found in database.", "bot-msg");
-							return;
+				// Only apply commit ID filtering if not a release string
+				if (commitId && isValidCommitId && !isReleaseString) {
+					filteredMatches = filteredMatches.filter(entry => {
+						if (!entry.Revision) return false;
+						if (commitId.length === 7) {
+							return entry.Revision.startsWith(commitId);
+						} else if (commitId.length === 40) {
+							return entry.Revision === commitId;
 						}
+						return false;
+					});
+					if (filteredMatches.length === 0) {
+						appendMessage("❗ Invalid commit ID: not found in database.", "bot-msg");
+						return;
 					}
+				}
 				// If author name, filter for exact word or full name match in author_name
 						if (isAuthorName && (authorNameWord || authorFullName)) {
 							filteredMatches = filteredMatches.filter(entry => {

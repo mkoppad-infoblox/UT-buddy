@@ -150,9 +150,33 @@ async def get_commit_failures(request: Request):
     body = await request.json()
     start_date = body.get("start_date")
     end_date = body.get("end_date")
+    # If not provided, try to extract two dates from raw_query
+    if (not start_date or not end_date) and "raw_query" in body:
+        import re
+        date_matches = re.findall(r"\d{4}-\d{2}-\d{2}", body["raw_query"])
+        if len(date_matches) >= 2:
+            # Always use the first two dates as range
+            start_date, end_date = date_matches[0], date_matches[1]
 
     user_input = body.get("commit_id", "").strip()
+    # Map release string to commit id if present
+    mapped_commit_id = release_to_commit.get(user_input, None)
+    if mapped_commit_id:
+        user_input = mapped_commit_id
     author_name_query = body.get("author_name", "").strip().lower()
+    # Detect platform/type filter from user input (frontend should pass original user text as 'raw_query' for this to work best)
+    raw_query = body.get("raw_query", "").lower() if "raw_query" in body else ""
+    platform_filter = None
+    type_filter = None
+    if "test center" in raw_query:
+        platform_filter = "Test Center"
+    elif "jenkins" in raw_query:
+        platform_filter = "Jenkins"
+    # Type filter
+    if any(word in raw_query for word in ["quick"]):
+        type_filter = "quick"
+    elif any(word in raw_query for word in ["slow/base", "slow base", "slow_base", "slow", "base"]):
+        type_filter = "slow_base"
 
     # Helper to parse date string
     def parse_date(date_str):
@@ -179,11 +203,23 @@ async def get_commit_failures(request: Request):
 
 
     # Author name search (takes precedence if provided)
+
     if author_name_query:
         def author_match(name):
             if not name:
                 return False
-            return author_name_query in name.lower()
+            name = name.lower()
+            # Partial match for first name (first word)
+            first_word = name.split()[0] if name.split() else ""
+            if first_word.startswith(author_name_query):
+                return True
+            # Exact match for any word
+            if any(word == author_name_query for word in name.split()):
+                return True
+            # Full name match
+            if name == author_name_query:
+                return True
+            return False
 
         test_center_matches = [
             {
@@ -287,12 +323,10 @@ async def get_commit_failures(request: Request):
             return {"matches": []}
 
         is_commit_id = any(c in user_input for c in "abcdef0123456789") and len(user_input) >= 7
-        if is_commit_id:
-            commit_id = user_input
-        else:
-            commit_id = release_to_commit.get(user_input)
-            if not commit_id:
-                return {"matches": []}
+        commit_id = user_input
+        # If user_input was a release string, it is already mapped above
+        if not commit_id:
+            return {"matches": []}
 
         test_center_matches = [
             {
@@ -337,6 +371,12 @@ async def get_commit_failures(request: Request):
         jenkins_quick_matches = match_jenkins(jenkins_quick)
 
     all_matches = test_center_matches + jenkins_base_matches + jenkins_quick_matches
+    # If platform filter is set, filter results accordingly
+    if platform_filter:
+        all_matches = [m for m in all_matches if str(m.get("Platform", "")).lower() == platform_filter.lower()]
+    # If type filter is set, filter results accordingly
+    if type_filter:
+        all_matches = [m for m in all_matches if str(m.get("Type", "")).lower() == type_filter.lower()]
     return {"matches": all_matches}
 
 @app.post("/search")
