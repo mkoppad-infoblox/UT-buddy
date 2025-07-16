@@ -144,28 +144,200 @@ release_to_commit = {
     "9.0.7": "ca85f2e65d903f93f60eb97b3ff1209992df0eae"
 }
 
+
 @app.post("/commit_failures")
 async def get_commit_failures(request: Request):
     body = await request.json()
+    start_date = body.get("start_date")
+    end_date = body.get("end_date")
+
     user_input = body.get("commit_id", "").strip()
+    author_name_query = body.get("author_name", "").strip().lower()
 
-    if not user_input:
-        return {"matches": []}
+    # Helper to parse date string
+    def parse_date(date_str):
+        try:
+            return date_str and date_str[:10]
+        except Exception:
+            return None
 
-    is_commit_id = any(c in user_input for c in "abcdef0123456789") and len(user_input) >= 7
-    if is_commit_id:
-        commit_id = user_input
+    # --- Test Center Results ---
+    flat_data = [item for sublist in combined_data for item in sublist]
+    test_center_matches = []
+    # --- Jenkins Results (final_base.json & final_quick.json) ---
+    def load_json_file(path):
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except Exception:
+            return []
+
+    jenkins_base = load_json_file("final_base.json")
+    jenkins_quick = load_json_file("final_quick.json")
+    jenkins_base_matches = []
+    jenkins_quick_matches = []
+
+
+    # Author name search (takes precedence if provided)
+    if author_name_query:
+        def author_match(name):
+            if not name:
+                return False
+            return author_name_query in name.lower()
+
+        test_center_matches = [
+            {
+                "Source": "Test Center",
+                "Revision": row.get("Revision"),
+                "Date": row.get("Date"),
+                "Type": row.get("Type"),
+                "Status": row.get("Status"),
+                "Total": row.get("Total"),
+                "Failures": row.get("Failures"),
+                "Garbage": row.get("Garbage"),
+                "id_href": row.get("id_href"),
+                "Platform": row.get("Platform", "Test Center"),
+                "author_name": row.get("author_name"),
+                "author_email": row.get("author_email")
+            }
+            for row in flat_data
+            if author_match(row.get("author_name"))
+        ]
+
+        def match_jenkins(data):
+            return [
+                {
+                    "Source": "Jenkins",
+                    "Revision": item.get("commit"),
+                    "Date": item.get("date"),
+                    "Type": item.get("Type"),
+                    "Status": item.get("Status"),
+                    "Total": item.get("total"),
+                    "Passed": item.get("passed"),
+                    "Failed": item.get("failed"),
+                    "Skipped": item.get("skipped"),
+                    "URL": item.get("URL"),
+                    "Platform": item.get("Platform", "Jenkins"),
+                    "author_name": item.get("author_name"),
+                    "author_email": item.get("author_email")
+                }
+                for item in data
+                if author_match(item.get("author_name"))
+            ]
+        jenkins_base_matches = match_jenkins(jenkins_base)
+        jenkins_quick_matches = match_jenkins(jenkins_quick)
+        all_matches = test_center_matches + jenkins_base_matches + jenkins_quick_matches
+        return {"matches": all_matches}
+
+    if start_date or end_date:
+        # Support single date or range
+        s_date = start_date or end_date
+        e_date = end_date or start_date
+        def in_range(date_str):
+            try:
+                return s_date <= date_str[:10] <= e_date
+            except Exception:
+                return False
+
+        test_center_matches = [
+            {
+                "Source": "Test Center",
+                "Revision": row.get("Revision"),
+                "Date": row.get("Date"),
+                "Type": row.get("Type"),
+                "Status": row.get("Status"),
+                "Total": row.get("Total"),
+                "Failures": row.get("Failures"),
+                "Garbage": row.get("Garbage"),
+                "id_href": row.get("id_href"),
+                "Platform": row.get("Platform", "Test Center"),
+                "author_name": row.get("author_name"),
+                "author_email": row.get("author_email")
+            }
+            for row in flat_data
+            if row.get("Date") and in_range(row.get("Date"))
+        ]
+
+        def match_jenkins(data):
+            return [
+                {
+                    "Source": "Jenkins",
+                    "Revision": item.get("commit"),
+                    "Date": item.get("date"),
+                    "Type": item.get("Type"),
+                    "Status": item.get("Status"),
+                    "Total": item.get("total"),
+                    "Passed": item.get("passed"),
+                    "Failed": item.get("failed"),
+                    "Skipped": item.get("skipped"),
+                    "URL": item.get("URL"),
+                    "Platform": item.get("Platform", "Jenkins"),
+                    "author_name": item.get("author_name"),
+                    "author_email": item.get("author_email")
+                }
+                for item in data
+                if item.get("date") and in_range(item.get("date"))
+            ]
+        jenkins_base_matches = match_jenkins(jenkins_base)
+        jenkins_quick_matches = match_jenkins(jenkins_quick)
+
     else:
-        commit_id = release_to_commit.get(user_input)
-        if not commit_id:
+        # Filter by commit id or release
+        if not user_input:
             return {"matches": []}
 
-    flat_data = [item for sublist in combined_data for item in sublist]
-    matching_rows = [
-        row for row in flat_data
-        if row.get("Revision") == commit_id or row.get("Revision", "")[:7] == commit_id[:7]
-    ]
-    return {"matches": matching_rows}
+        is_commit_id = any(c in user_input for c in "abcdef0123456789") and len(user_input) >= 7
+        if is_commit_id:
+            commit_id = user_input
+        else:
+            commit_id = release_to_commit.get(user_input)
+            if not commit_id:
+                return {"matches": []}
+
+        test_center_matches = [
+            {
+                "Source": "Test Center",
+                "Revision": row.get("Revision"),
+                "Date": row.get("Date"),
+                "Type": row.get("Type"),
+                "Status": row.get("Status"),
+                "Total": row.get("Total"),
+                "Failures": row.get("Failures"),
+                "Garbage": row.get("Garbage"),
+                "id_href": row.get("id_href"),
+                "Platform": row.get("Platform", "Test Center"),
+                "author_name": row.get("author_name"),
+                "author_email": row.get("author_email")
+            }
+            for row in flat_data
+            if row.get("Revision") == commit_id or row.get("Revision", "")[:7] == commit_id[:7]
+        ]
+
+        def match_jenkins(data):
+            return [
+                {
+                    "Source": "Jenkins",
+                    "Revision": item.get("commit"),
+                    "Date": item.get("date"),
+                    "Type": item.get("Type"),
+                    "Status": item.get("Status"),
+                    "Total": item.get("total"),
+                    "Passed": item.get("passed"),
+                    "Failed": item.get("failed"),
+                    "Skipped": item.get("skipped"),
+                    "URL": item.get("URL"),
+                    "Platform": item.get("Platform", "Jenkins"),
+                    "author_name": item.get("author_name"),
+                    "author_email": item.get("author_email")
+                }
+                for item in data
+                if item.get("commit") == commit_id or item.get("commit", "")[:7] == commit_id[:7]
+            ]
+        jenkins_base_matches = match_jenkins(jenkins_base)
+        jenkins_quick_matches = match_jenkins(jenkins_quick)
+
+    all_matches = test_center_matches + jenkins_base_matches + jenkins_quick_matches
+    return {"matches": all_matches}
 
 @app.post("/search")
 async def search_error(request: Request):
