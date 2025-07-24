@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
-
+ 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
@@ -14,32 +14,57 @@ import requests
 import os
 import logging
 from openai import AzureOpenAI
-
+ 
+from datetime import datetime
+ 
+# Configure logging
+logging.basicConfig(level=logging.INFO,
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                   handlers=[
+                       logging.FileHandler("ut_buddy.log"),  # Log to file
+                       logging.StreamHandler()  # Continue logging to console
+                   ])
+logger = logging.getLogger(__name__)
+ 
+AZURE_API_KEY = os.getenv("AZURE_API_KEY")
+AZURE_ENDPOINT = "https://hackfest25.openai.azure.com/"
+AZURE_API_VERSION = "2025-01-01-preview"
+AZURE_DEPLOYMENT = "gpt-4o"
+ 
+# Log API configuration (masking API key for security)
+if AZURE_API_KEY:
+    logger.info(f"Azure API Key loaded. First few chars: {AZURE_API_KEY[:5]}...")
+    logger.info(f"Azure Endpoint: {AZURE_ENDPOINT}")
+    logger.info(f"Azure API Version: {AZURE_API_VERSION}")
+    logger.info(f"Azure Deployment: {AZURE_DEPLOYMENT}")
+else:
+    logger.error("Azure API Key not found in environment variables!")
+ 
 # Keyword lists for intent detection
 greeting_keywords = [
     "hi", "hello", "hey", "yo", "howdy", "greetings", "good morning", "good afternoon", "good evening",
-    "what's up", "how are you", "how’s it going", "sup", "hiya", "hey there", "morning", "evening",
-    "nice to meet you", "pleased to meet you", "hope you're well", "hope you’re doing well", "how do you do",
-    "how have you been", "how are things", "how’s everything", "how’s life", "how’s your day", "how’s your morning",
-    "how’s your evening", "how’s your week", "how’s your weekend", "how’s your night", "how’s your afternoon",
-    "how’s your day going", "how’s it going today", "how’s it going so far", "how’s it going lately",
-    "how’s it going with you", "how’s it going buddy", "how’s it going friend", "how’s it going mate",
-    "how’s it going pal", "how’s it going team", "how’s it going assistant", "how’s it going copilot",
-    "how’s it going bot", "how’s it going helper", "how’s it going support", "how’s it going engineer",
-    "how’s it going dev", "how’s it going developer", "how’s it going tester", "how’s it going qa",
-    "how’s it going admin", "how’s it going sysadmin", "how’s it going ops", "how’s it going devops",
-    "how’s it going ci", "how’s it going cd", "how’s it going ci/cd", "how’s it going pipeline",
-    "how’s it going build", "how’s it going deploy", "how’s it going release", "how’s it going job",
-    "how’s it going task", "how’s it going project", "how’s it going sprint", "how’s it going backlog",
-    "how’s it going ticket", "how’s it going issue", "how’s it going bug", "how’s it going feature",
-    "how’s it going story", "how’s it going epic", "how’s it going test", "how’s it going case",
-    "how’s it going suite", "how’s it going plan", "how’s it going run", "how’s it going result",
-    "how’s it going report", "how’s it going dashboard", "how’s it going view", "how’s it going config",
-    "how’s it going setting", "how’s it going preference", "how’s it going option", "how’s it going menu",
-    "how’s it going tab", "how’s it going section", "how’s it going panel", "how’s it going window",
-    "how’s it going screen", "how’s it going page", "how’s it going dialog", "how’s it going popup"
+    "what's up", "how are you", "how's it going", "sup", "hiya", "hey there", "morning", "evening",
+    "nice to meet you", "pleased to meet you", "hope you're well", "hope you're doing well", "how do you do",
+    "how have you been", "how are things", "how's everything", "how's life", "how's your day", "how's your morning",
+    "how's your evening", "how's your week", "how's your weekend", "how's your night", "how's your afternoon",
+    "how's your day going", "how's it going today", "how's it going so far", "how's it going lately",
+    "how's it going with you", "how's it going buddy", "how's it going friend", "how's it going mate",
+    "how's it going pal", "how's it going team", "how's it going assistant", "how's it going copilot",
+    "how's it going bot", "how's it going helper", "how's it going support", "how's it going engineer",
+    "how's it going dev", "how's it going developer", "how's it going tester", "how's it going qa",
+    "how's it going admin", "how's it going sysadmin", "how's it going ops", "how's it going devops",
+    "how's it going ci", "how's it going cd", "how's it going ci/cd", "how's it going pipeline",
+    "how's it going build", "how's it going deploy", "how's it going release", "how's it going job",
+    "how's it going task", "how's it going project", "how's it going sprint", "how's it going backlog",
+    "how's it going ticket", "how's it going issue", "how's it going bug", "how's it going feature",
+    "how's it going story", "how's it going epic", "how's it going test", "how's it going case",
+    "how's it going suite", "how's it going plan", "how's it going run", "how's it going result",
+    "how's it going report", "how's it going dashboard", "how's it going view", "how's it going config",
+    "how's it going setting", "how's it going preference", "how's it going option", "how's it going menu",
+    "how's it going tab", "how's it going section", "how's it going panel", "how's it going window",
+    "how's it going screen", "how's it going page", "how's it going dialog", "how's it going popup","bye"
 ]
-
+ 
 jenkins_keywords = [
     "jenkins", "pipeline", "job", "build", "freestyle", "agent", "node", "executor", "trigger", "scm",
     "poll scm", "cron", "build step", "post-build", "upstream", "downstream", "view", "log", "console output",
@@ -53,16 +78,16 @@ jenkins_keywords = [
     "pipeline post", "pipeline when", "pipeline stages", "pipeline steps", "pipeline parallel", "pipeline matrix",
     "pipeline timeout", "pipeline retry", "pipeline catchError", "pipeline timestamps", "pipeline ansiColor",
     "pipeline checkout", "pipeline sh", "pipeline bat", "pipeline echo", "pipeline readFile", "pipeline writeFile",
-    "pipeline archiveArtifacts", "pipeline junit", "pipeline stash", "pipeline unstash"
+    "pipeline archiveArtifacts", "pipeline junit", "pipeline stash", "pipeline unstash","new item"
 ]
-
-
+ 
+ 
 app = FastAPI()
-
+ 
 # Mount static files
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
-
+ 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
@@ -71,24 +96,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+ 
 # Load embedding model
 model = SentenceTransformer("BAAI/bge-small-en-v1.5")
-
+ 
 # Load JIRA index and metadata
-index = faiss.read_index("jira_index_latest.faiss")
-with open("jira_metadata_latest.pkl", "rb") as f:
+index = faiss.read_index("jira_index_updated.faiss")
+with open("jira_metadata_updated.pkl", "rb") as f:
     metadata = pickle.load(f)
-
+ 
 # Load combined commit data
 with open("combined_data.json", "r") as f:
     combined_data = json.load(f)
-
+ 
 # Load Jenkins documentation index and metadata
 jenkins_index = faiss.read_index("jenkins_docs_index.faiss")
 with open("jenkins_docs_metadata.pkl", "rb") as f:
     jenkins_chunks = pickle.load(f)
-
+ 
 # Build prompt with context
 def build_prompt_with_context(user_message, context_chunks):
     context_text = "\n\n".join(context_chunks)
@@ -103,36 +128,43 @@ def build_prompt_with_context(user_message, context_chunks):
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_message}
     ]
-
-# Local model call (Ollama)
-def ask_local_model(messages):
+ 
+# Azure OpenAI API call function
+def ask_azure_openai_model(messages):
     try:
-        response = requests.post(
-            "http://localhost:11434/api/chat",
-            json={
-                "model": "llama3",
-                "messages": messages,
-                "stream": False
-            }
+        logger.info(f"Starting API request to Azure OpenAI with {len(messages)} messages")
+        logger.info(f"Azure client config - Endpoint: {AZURE_ENDPOINT}, API Version: {AZURE_API_VERSION}")
+        logger.info(f"Using deployment: {AZURE_DEPLOYMENT}")
+        # Check if API key is available (showing only first 5 chars)
+        api_key_prefix = AZURE_API_KEY[:5] if AZURE_API_KEY and len(AZURE_API_KEY) > 5 else "None"
+        logger.info(f"API Key available: {api_key_prefix}...")
+        logger.info(f"Message structure: {[{'role': m['role'], 'content_length': len(m['content'])} for m in messages]}")
+        
+        response = azure_client.chat.completions.create(
+            model=AZURE_DEPLOYMENT,
+            messages=messages
         )
-        response.raise_for_status()
-        return response.json().get("message", {}).get("content", "").strip()
+        logger.info("Successfully received response from Azure OpenAI")
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        logging.error(f"Error calling local model: {e}")
-        return "Sorry, I couldn't generate a response at the moment."
-
+        logger.error(f"Error calling Azure OpenAI model: {str(e)}", exc_info=True)
+        # Log the full error details including stack trace
+        import traceback
+        logger.error(f"Full error traceback: {traceback.format_exc()}")
+        return f"Error: {str(e)}"
+ 
 @app.get("/", response_class=HTMLResponse)
 async def root():
     return FileResponse("frontend/index.html")
-
+ 
 @app.get("/commit_failures.html", response_class=HTMLResponse)
 async def commit_failures_page():
     return FileResponse("frontend/commit_failures.html")
-
+ 
 @app.get("/resolution.html", response_class=HTMLResponse)
 async def resolution_page():
     return FileResponse("frontend/resolution.html")
-
+ 
 release_to_commit = {
     "9.0.0": "de455822b3467ca0b5805570c057123c4c859018",
     "9.0.1": "eb87c18471a734d7cd31e64ed3c8c14b1e907dc9",
@@ -143,8 +175,7 @@ release_to_commit = {
     "9.0.6": "82020f7ffaad11c15f6fc7beacdf4fc79c326ace",
     "9.0.7": "ca85f2e65d903f93f60eb97b3ff1209992df0eae"
 }
-
-
+#Commit failures updated changes
 @app.post("/commit_failures")
 async def get_commit_failures(request: Request):
     body = await request.json()
@@ -157,7 +188,7 @@ async def get_commit_failures(request: Request):
         if len(date_matches) >= 2:
             # Always use the first two dates as range
             start_date, end_date = date_matches[0], date_matches[1]
-
+ 
     user_input = body.get("commit_id", "").strip()
     # Map release string to commit id if present
     mapped_commit_id = release_to_commit.get(user_input, None)
@@ -177,14 +208,14 @@ async def get_commit_failures(request: Request):
         type_filter = "quick"
     elif any(word in raw_query for word in ["slow/base", "slow base", "slow_base", "slow", "base"]):
         type_filter = "slow_base"
-
+ 
     # Helper to parse date string
     def parse_date(date_str):
         try:
             return date_str and date_str[:10]
         except Exception:
             return None
-
+ 
     # --- Test Center Results ---
     flat_data = [item for sublist in combined_data for item in sublist]
     test_center_matches = []
@@ -195,15 +226,15 @@ async def get_commit_failures(request: Request):
                 return json.load(f)
         except Exception:
             return []
-
+ 
     jenkins_base = load_json_file("final_base.json")
     jenkins_quick = load_json_file("final_quick.json")
     jenkins_base_matches = []
     jenkins_quick_matches = []
-
-
+ 
+ 
     # Author name search (takes precedence if provided)
-
+ 
     if author_name_query:
         def author_match(name):
             if not name:
@@ -220,7 +251,7 @@ async def get_commit_failures(request: Request):
             if name == author_name_query:
                 return True
             return False
-
+ 
         test_center_matches = [
             {
                 "Source": "Test Center",
@@ -239,7 +270,7 @@ async def get_commit_failures(request: Request):
             for row in flat_data
             if author_match(row.get("author_name"))
         ]
-
+ 
         def match_jenkins(data):
             return [
                 {
@@ -264,7 +295,7 @@ async def get_commit_failures(request: Request):
         jenkins_quick_matches = match_jenkins(jenkins_quick)
         all_matches = test_center_matches + jenkins_base_matches + jenkins_quick_matches
         return {"matches": all_matches}
-
+ 
     if start_date or end_date:
         # Support single date or range
         s_date = start_date or end_date
@@ -274,7 +305,7 @@ async def get_commit_failures(request: Request):
                 return s_date <= date_str[:10] <= e_date
             except Exception:
                 return False
-
+ 
         test_center_matches = [
             {
                 "Source": "Test Center",
@@ -293,7 +324,7 @@ async def get_commit_failures(request: Request):
             for row in flat_data
             if row.get("Date") and in_range(row.get("Date"))
         ]
-
+ 
         def match_jenkins(data):
             return [
                 {
@@ -316,18 +347,18 @@ async def get_commit_failures(request: Request):
             ]
         jenkins_base_matches = match_jenkins(jenkins_base)
         jenkins_quick_matches = match_jenkins(jenkins_quick)
-
+ 
     else:
         # Filter by commit id or release
         if not user_input:
             return {"matches": []}
-
+ 
         is_commit_id = any(c in user_input for c in "abcdef0123456789") and len(user_input) >= 7
         commit_id = user_input
         # If user_input was a release string, it is already mapped above
         if not commit_id:
             return {"matches": []}
-
+ 
         test_center_matches = [
             {
                 "Source": "Test Center",
@@ -346,7 +377,7 @@ async def get_commit_failures(request: Request):
             for row in flat_data
             if row.get("Revision") == commit_id or row.get("Revision", "")[:7] == commit_id[:7]
         ]
-
+ 
         def match_jenkins(data):
             return [
                 {
@@ -369,7 +400,7 @@ async def get_commit_failures(request: Request):
             ]
         jenkins_base_matches = match_jenkins(jenkins_base)
         jenkins_quick_matches = match_jenkins(jenkins_quick)
-
+ 
     all_matches = test_center_matches + jenkins_base_matches + jenkins_quick_matches
     # If platform filter is set, filter results accordingly
     if platform_filter:
@@ -378,14 +409,16 @@ async def get_commit_failures(request: Request):
     if type_filter:
         all_matches = [m for m in all_matches if str(m.get("Type", "")).lower() == type_filter.lower()]
     return {"matches": all_matches}
-
+ 
+#end of commit failures
+ 
 @app.post("/search")
 async def search_error(request: Request):
     body = await request.json()
     query = body.get("query", "")
     query_vec = model.encode([query], normalize_embeddings=True)
     D, I = index.search(np.array(query_vec), k=30)
-
+ 
     results = []
     for idx in I[0]:
         ticket = metadata[idx]
@@ -393,51 +426,50 @@ async def search_error(request: Request):
             "id": ticket["ID"],
             "title": ticket["Title"],
             "url": ticket["URL"],
-            "status": ticket.get("Status", "Unknown")
+            "status": ticket.get("Status", "Unknown"),
+            # Try both capitalized and lowercase key versions
+            "assignee": ticket.get("Assignee", ticket.get("assignee", "")),
+            "reporter": ticket.get("Reporter", ticket.get("reporter", ""))
         })
     return {"matches": results}
-
-@app.post("/jenkins_chat")
+ 
+@app.post("/jenkins_chats")
 async def jenkins_chats(request: Request):
     body = await request.json()
     user_messages = body.get("messages", [])
-
+ 
     if not user_messages or not isinstance(user_messages, list):
         return {"error": "A list of messages is required for multi-turn conversation."}
     for msg in user_messages:
         if not isinstance(msg, dict) or "role" not in msg or "content" not in msg:
             return {"error": "Each message must be a dict with 'role' and 'content' keys."}
-
+ 
     # Use only the latest user message
     latest_user_msg = next((msg["content"] for msg in reversed(user_messages) if msg["role"] == "user"), "")
     if not latest_user_msg:
         return {"error": "No user message found."}
-
+ 
     msg_lower = latest_user_msg.lower()
-
+ 
     # Intent detection
     is_greeting = any(word in msg_lower for word in greeting_keywords)
     is_jenkins_related = any(word in msg_lower for word in jenkins_keywords)
-
+ 
     if not is_greeting and not is_jenkins_related:
         return {
             "response": "I'm focused on Jenkins. Please ask something related to Jenkins tasks or configuration."
         }
-
+ 
     # Embed and retrieve relevant Jenkins docs
     query_vec = model.encode([latest_user_msg], normalize_embeddings=True)
     D, I = jenkins_index.search(np.array(query_vec), k=5)
     top_chunks = [jenkins_chunks[i] for i in I[0]]
-
+ 
     # Build prompt with only the latest user message and context
     prompt_messages = build_prompt_with_context(latest_user_msg, top_chunks)
-    response = ask_local_model(prompt_messages)
+    response = ask_azure_openai_model(prompt_messages)
     return {"response": response}
-
-
-
-
-
+ 
 # --- BEGIN: Logic from test_llm_copy.py for /resolve_error_chat ---
 RESOLUTION_SYSTEM_PROMPT = (
     "You are a UT failure assistant. You help users debug and fix errors in their code and unit tests in Python. "
@@ -447,7 +479,7 @@ RESOLUTION_SYSTEM_PROMPT = (
 RESOLUTION_SENTENCE_MODEL = "BAAI/bge-large-en-v1.5"
 RESOLUTION_FAISS_INDEX = "chunk.index"
 RESOLUTION_CHUNK_TEXTS = "chunk_texts.json"
-
+ 
 resolution_embedding_model = None
 def get_resolution_embedding(text):
     global resolution_embedding_model
@@ -455,7 +487,7 @@ def get_resolution_embedding(text):
         resolution_embedding_model = SentenceTransformer(RESOLUTION_SENTENCE_MODEL)
     emb = resolution_embedding_model.encode(text, normalize_embeddings=True)
     return emb if isinstance(emb, np.ndarray) else np.array(emb, dtype=np.float32)
-
+ 
 def get_most_relevant_resolution_chunk(user_input, faiss_index_path=RESOLUTION_FAISS_INDEX, chunk_texts_path=RESOLUTION_CHUNK_TEXTS, threshold=0.5, top_k=3):
     try:
         index = faiss.read_index(faiss_index_path)
@@ -472,15 +504,11 @@ def get_most_relevant_resolution_chunk(user_input, faiss_index_path=RESOLUTION_F
             return None
     except Exception:
         return None
-
-
+ 
+ 
 # Azure OpenAI configuration (load API key from .env)
-AZURE_API_KEY = os.getenv("AZURE_API_KEY")
-AZURE_ENDPOINT = "https://hackfest25.openai.azure.com/"
-AZURE_API_VERSION = "2025-01-01-preview"
-AZURE_DEPLOYMENT = "gpt-4o"
 azure_client = AzureOpenAI(api_key=AZURE_API_KEY, azure_endpoint=AZURE_ENDPOINT, api_version=AZURE_API_VERSION)
-
+ 
 def query_azure_gpt_resolve(prompt, reference_text=None, message_history=None):
     messages = []
     if message_history:
@@ -501,7 +529,7 @@ def query_azure_gpt_resolve(prompt, reference_text=None, message_history=None):
         return reply
     except Exception as e:
         return f"Error communicating with Azure OpenAI: {e}"
-
+ 
 @app.post("/resolve_error_chat")
 async def resolve_error_chat(request: Request):
     body = await request.json()
@@ -511,15 +539,15 @@ async def resolve_error_chat(request: Request):
     for msg in user_messages:
         if not isinstance(msg, dict) or "role" not in msg or "content" not in msg:
             return {"error": "Each message must be a dict with 'role' and 'content' keys."}
-
+ 
     # Find the latest user message
     latest_user_msg = next((msg["content"] for msg in reversed(user_messages) if msg["role"] == "user"), "")
     if not latest_user_msg:
         return {"error": "No user message found."}
-
+ 
     # Find the most relevant chunk
     relevant_chunk = get_most_relevant_resolution_chunk(latest_user_msg)
-
+ 
     # If user asks a follow-up, use last relevant chunk (not tracked in stateless API, so just use current)
     # Compose message history for Azure GPT
     message_history = [
@@ -530,9 +558,47 @@ async def resolve_error_chat(request: Request):
             message_history.append({"role": "user", "content": msg["content"]})
         elif msg["role"] == "assistant":
             message_history.append({"role": "assistant", "content": msg["content"]})
-
+ 
     if relevant_chunk is not None:
         reply = query_azure_gpt_resolve(latest_user_msg, reference_text=relevant_chunk, message_history=message_history)
     else:
         reply = query_azure_gpt_resolve(latest_user_msg, reference_text=None, message_history=message_history)
     return {"response": reply}
+ 
+@app.post("/jenkins_feedback")
+async def jenkins_feedback(request: Request):
+    try:
+        # Parse the feedback data from the request
+        feedback_data = await request.json()
+        
+        # Extract the feedback details
+        message_id = feedback_data.get("messageId")
+        query = feedback_data.get("query", "")
+        response = feedback_data.get("response", "")
+        is_positive = feedback_data.get("isPositive", False)
+        feedback_text = feedback_data.get("feedbackText", "")
+        timestamp = feedback_data.get("timestamp", datetime.now().isoformat())
+        
+        # Create a filename with timestamp to ensure uniqueness
+        filename = f"jenkins_feedback/feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{message_id}.json"
+        
+        # Ensure the jenkins_feedback directory exists
+        os.makedirs("jenkins_feedback", exist_ok=True)
+        
+        # Write the feedback data to a file
+        with open(filename, "w") as f:
+            json.dump({
+                "messageId": message_id,
+                "query": query,
+                "response": response,
+                "isPositive": is_positive,
+                "feedbackText": feedback_text,
+                "timestamp": timestamp
+            }, f, indent=4)
+        
+        logger.info(f"Saved Jenkins feedback to {filename}")
+        return {"status": "success", "message": "Feedback saved successfully"}
+    
+    except Exception as e:
+        logger.error(f"Error saving Jenkins feedback: {str(e)}", exc_info=True)
+        return {"status": "error", "message": f"Failed to save feedback: {str(e)}"}
